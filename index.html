@@ -810,6 +810,7 @@
       if (speechSynthesis) speechSynthesis.cancel();
       if (mantraAudio) { mantraAudio.pause(); mantraAudio = null; }
       if (bookAudio) { bookAudio.pause(); bookAudio = null; }
+      if (window.__dreamRenderer && window.__dreamRenderer.stopBuddhaAudio) window.__dreamRenderer.stopBuddhaAudio();
       btnMantra.textContent = "▶ " + UI[currentLang].mantra; btnChorus.textContent = "▶ " + UI[currentLang].chorus;
       btnBook.textContent = "▶ " + UI[currentLang].book; btnPuja.textContent = "▶ " + UI[currentLang].puja; btnJourney.textContent = "▶ " + UI[currentLang].journey;
       [btnMantra,btnChorus,btnBook,btnPuja,btnJourney].forEach(function(b){ b.classList.remove("active"); });

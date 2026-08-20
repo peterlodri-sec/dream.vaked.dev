@@ -265,8 +265,28 @@
   }
 
   /* ── Buddha-formák: Mahakala (jobb felső) + Csenrezig (bal felső) ──
-     forma (sziluett) · alak (a mandala) · sugárzás (aura) · fény (a ragyogás) */
+     forma (sziluett) · alak (a mandala) · sugárzás (aura) · fény (a ragyogás)
+     A mantrák: Mahakala 0.21, Csenrezig 0.17 — a formák mellett szólnak. */
+  var mahakalaAudio = null, chenrezigAudio = null, buddhaAudioStarted = false;
+  function startBuddhaAudio() {
+    if (buddhaAudioStarted) return;
+    buddhaAudioStarted = true;
+    try {
+      mahakalaAudio = new Audio("audio/mahakala-mantra.mp3");
+      mahakalaAudio.loop = true; mahakalaAudio.volume = 0.21;
+      mahakalaAudio.play().catch(function(){});
+      chenrezigAudio = new Audio("audio/chenrezig-mantra.mp3");
+      chenrezigAudio.loop = true; chenrezigAudio.volume = 0.17;
+      chenrezigAudio.play().catch(function(){});
+    } catch (e) { /* a hang nem kritikus */ }
+  }
+  function stopBuddhaAudio() {
+    buddhaAudioStarted = false;
+    if (mahakalaAudio) { mahakalaAudio.pause(); mahakalaAudio = null; }
+    if (chenrezigAudio) { chenrezigAudio.pause(); chenrezigAudio = null; }
+  }
   function drawBuddhaForms(time, stage) {
+    startBuddhaAudio();
     var cx = W / 2, cy = H / 2;
     var pulse = 0.5 + 0.5 * Math.sin(time * 0.01);
     var size = Math.min(W, H) * 0.16;
@@ -377,5 +397,5 @@
     ctx2d.fill();
   }
 
-  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms };
+  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms, startBuddhaAudio, stopBuddhaAudio };
 })();
