@@ -65,6 +65,18 @@
     font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--faint);
     padding:0.35rem;opacity:0.5;pointer-events:none;}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "dream.vaked.dev",
+  "url": "https://dream.vaked.dev/",
+  "description": "Milarepa útja — OM·AH·HUM, a gyakorlat hangja és képe. Mantrák, a könyv hangos olvasása, véletlen púdzsák, a 17 Karmapa vonal-kórusa, és Milarepa útjának vizuáljai. Hét nyelven: magyar, latin, ómagyar, tibeti, kínai, maja, angol.",
+  "inLanguage": ["hu", "la", "en", "zh", "bo"],
+  "publisher": { "@type": "Organization", "name": "peterlodri-sec", "url": "https://github.com/peterlodri-sec" },
+  "about": { "@type": "Thing", "name": "Milarepa", "description": "Tibetan siddha, poet, and yogi of the Kagyu lineage; dream yoga and the Six Dharmas of Naropa" }
+}
+</script>
 </head>
 <body>
 
@@ -102,8 +114,17 @@
   <button class="lang" data-lang="en" title="english">EN</button>
 </div>
 
-<div class="foot">the constellation · 0 + 1 · fine touch from within · vaked.dev</div>
+<div class="foot">the constellation · 0 + 1 · fine touch from within · vaked.dev ·
+  <a href="https://art.vaked.dev/" style="color:#6a5a4a;text-decoration:none">art</a> ·
+  <a href="https://music.vaked.dev/" style="color:#6a5a4a;text-decoration:none">music</a> ·
+  <a href="https://proposal.vaked.dev/" style="color:#6a5a4a;text-decoration:none">proposal</a> ·
+  <a href="https://pocoo.vaked.dev/" style="color:#6a5a4a;text-decoration:none">pocoo</a> ·
+  <a href="https://etherhive.vaked.dev/" style="color:#6a5a4a;text-decoration:none">etherhive</a> ·
+  <a href="https://quant-love.mlxquantlovefrom.com/" style="color:#6a5a4a;text-decoration:none">quant-love</a> ·
+  <a href="https://axiomquant.org/" style="color:#6a5a4a;text-decoration:none">axiomquant</a> ·
+  <a href="https://portail.vaked.dev/" style="color:#6a5a4a;text-decoration:none">portail</a></div>
 
+<script src="webgpu.js"></script>
 <script>
 /* ═══ DREAM.VAKED.DEV — Milarepa útja, hét nyelven ═══
    i18n: magyar (hu), latin (la), ómagyar (oh), tibeti (bo), kínai (zh),
@@ -593,109 +614,105 @@
     }, 12000);
   }
 
-  /* ── A könyv hangos olvasása ── */
+  /* ── A könyv hangos olvasása — valódi emberi hang (gpt-4o-mini-tts) ── */
+  var bookAudio = null;   // az aktuális HTMLAudioElement
   function readBook() {
-    if (!("speechSynthesis" in window)) { statusEl.textContent = UI[currentLang].bookOn; return; }
-    var lines = BOOK_LINES[currentLang];
-    var i = 0;
-    bookEl.textContent = lines[0]; bookEl.classList.add("show");
-    function speakNext() {
-      if (!bookOn || i >= lines.length) { bookEl.classList.remove("show"); return; }
-      bookEl.textContent = lines[i];
-      var u = new SpeechSynthesisUtterance(lines[i]);
-      u.lang = "hu-HU";
-      if (currentLang === "en") u.lang = "en-US";
-      if (currentLang === "la") u.lang = "la";
-      if (currentLang === "bo") u.lang = "bo";
-      if (currentLang === "zh") u.lang = "zh-CN";
-      u.rate = 0.85; u.pitch = 0.9; u.volume = 0.9;
-      u.onend = function () { i++; speakNext(); };
-      u.onerror = function () { bookEl.classList.remove("show"); };
-      speechSynthesis.speak(u);
-    }
-    speakNext();
+    // 1. a valódi emberi hang (MP3) az aktuális nyelvhez
+    var mp3 = "audio/book-" + currentLang + ".mp3";
+    bookEl.textContent = BOOK_LINES[currentLang][0]; bookEl.classList.add("show");
+    if (bookAudio) { bookAudio.pause(); bookAudio = null; }
+    bookAudio = new Audio(mp3);
+    bookAudio.volume = 0.9;
+    bookAudio.onended = function () {
+      if (bookOn) { bookEl.classList.remove("show"); }
+    };
+    bookAudio.onerror = function () {
+      // 2. fallback: SpeechSynthesis, ha nincs MP3
+      if (!("speechSynthesis" in window)) { bookEl.classList.remove("show"); return; }
+      var lines = BOOK_LINES[currentLang];
+      var i = 0;
+      function speakNext() {
+        if (!bookOn || i >= lines.length) { bookEl.classList.remove("show"); return; }
+        bookEl.textContent = lines[i];
+        var u = new SpeechSynthesisUtterance(lines[i]);
+        u.lang = "hu-HU";
+        if (currentLang === "en") u.lang = "en-US";
+        if (currentLang === "la") u.lang = "la";
+        if (currentLang === "bo") u.lang = "bo";
+        if (currentLang === "zh") u.lang = "zh-CN";
+        u.rate = 0.85; u.pitch = 0.9; u.volume = 0.9;
+        u.onend = function () { i++; speakNext(); };
+        u.onerror = function () { bookEl.classList.remove("show"); };
+        speechSynthesis.speak(u);
+      }
+      speakNext();
+    };
+    bookAudio.play().catch(function () { bookEl.classList.remove("show"); });
   }
 
-  /* ── A vizuál ── */
+  /* ── A vizuál: WebGPU + WebWorker + WebAssembly ternary-quant ── */
   var canvas = document.getElementById("scene");
-  var c2d = canvas.getContext("2d");
-  var W, H;
-  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-  window.addEventListener("resize", resize); resize();
+  var worker = null;
+  var wasmLoaded = false;
+  var rendererReady = false;
+  var frame = 0;
+  var breathPhase = 0;   // RIVA légzés-ciklus
 
-  var particles = [];
-  function initParticles() {
-    particles = [];
-    for (var i = 0; i < 160; i++) {
-      particles.push({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*2+0.5,
-        vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3,
-        hue: Math.random()*40+10, a: Math.random()*0.5+0.2 });
+  function initVisuals() {
+    // 1. a renderer (WebGPU / Canvas2D fallback)
+    if (window.__dreamRenderer) {
+      window.__dreamRenderer.initGPU().then(function (ok) {
+        rendererReady = true;
+        if (ok) statusEl.textContent = UI[currentLang].status + " · WebGPU";
+        else statusEl.textContent = UI[currentLang].status + " · Canvas2D";
+      });
+    } else {
+      rendererReady = true;
+    }
+    // 2. a worker (a részecske-szimuláció)
+    if (window.Worker) {
+      try {
+        worker = new Worker("worker.js");
+        worker.onmessage = function (e) {
+          var m = e.data;
+          if (m.type === "frame" && window.__dreamRenderer) {
+            window.__dreamRenderer.setPoints(m.points);
+          } else if (m.type === "wasm_ready") {
+            wasmLoaded = true;
+          } else if (m.type === "wasm_error") {
+            // a worker wasm nélkül is fut (a JS fallback a workerben van)
+          }
+        };
+        // a wasm betöltése a workerbe
+        fetch("wasm/ternary.wasm").then(function (r) { return r.arrayBuffer(); })
+          .then(function (buf) { if (worker) worker.postMessage({ type: "load_wasm", wasm: buf }, [buf]); })
+          .catch(function () { /* a worker JS-fallbackkel fut */ });
+        worker.postMessage({ type: "init", count: 160 });
+      } catch (e) {
+        worker = null;
+      }
     }
   }
-  initParticles();
 
-  var frame = 0;
+  // a render-loop: a renderer-t hívja, és a worker-t lépteti
   function draw() {
     frame++;
-    c2d.clearRect(0, 0, W, H);
-    var st = STAGES[currentLang][stageIdx];
-    var bgHue = [20, 0, 210, 260, 300, 180, 200, 45][stageIdx];
-    var grad = c2d.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
-    grad.addColorStop(0, "hsla("+bgHue+",60%,12%,0.9)");
-    grad.addColorStop(1, "#080406");
-    c2d.fillStyle = grad; c2d.fillRect(0, 0, W, H);
-    var ringR = Math.min(W, H) * 0.32;
-    var ringA = (stageIdx >= 6) ? 0.5 + 0.3 * Math.sin(frame * 0.02) : 0.18 + 0.08 * Math.sin(frame * 0.03);
-    c2d.beginPath();
-    c2d.arc(W/2, H/2, ringR, 0, Math.PI * 2);
-    c2d.strokeStyle = "hsla("+bgHue+",90%,55%,"+ringA+")";
-    c2d.lineWidth = 2;
-    c2d.stroke();
-    for (var i = 0; i < 24; i++) {
-      var ang = i / 24 * Math.PI * 2 + frame * 0.01;
-      var rr = ringR + Math.sin(frame * 0.05 + i * 2) * 6;
-      var x = W/2 + Math.cos(ang) * rr, y = H/2 + Math.sin(ang) * rr;
-      c2d.beginPath();
-      c2d.arc(x, y, 2 + Math.sin(frame*0.1+i)*1.5, 0, Math.PI*2);
-      c2d.fillStyle = "hsla("+(bgHue+20)+",90%,60%,"+ringA+")";
-      c2d.fill();
+    if (rendererReady && window.__dreamRenderer) {
+      window.__dreamRenderer.render(frame * 0.016, stageIdx);
+      // a Kagyu-fa és a zen-kert a Canvas2D fallbackben
+      if (!window.__dreamRenderer.isGPU()) {
+        window.__dreamRenderer.drawKagyuTree(frame * 0.016, stageIdx);
+        window.__dreamRenderer.drawZenGarden(frame * 0.016, stageIdx);
+      }
     }
-    for (var p = 0; p < particles.length; p++) {
-      var pt = particles[p];
-      pt.x += pt.vx; pt.y += pt.vy;
-      if (pt.x < 0) pt.x = W; if (pt.x > W) pt.x = 0;
-      if (pt.y < 0) pt.y = H; if (pt.y > H) pt.y = 0;
-      if (stageIdx >= 7) pt.y -= 0.4;
-      var tw = 0.5 + 0.5 * Math.sin(frame * 0.02 + p);
-      c2d.beginPath();
-      c2d.arc(pt.x, pt.y, pt.r * (0.8 + tw * 0.6), 0, Math.PI * 2);
-      c2d.fillStyle = "hsla("+(pt.hue+stageIdx*5)+",80%,65%,"+pt.a*tw+")";
-      c2d.fill();
+    // a worker léptetése (a RIVA légzés-ciklus: 4s belégzés, 4s kilégzés)
+    breathPhase = (frame * 0.016) % 8;
+    if (worker && frame % 2 === 0) {
+      worker.postMessage({ type: "step", t: Math.floor(frame * 0.016 * 60), stage: stageIdx, W: canvas.width, H: canvas.height });
     }
-    var fy = H/2 + ringR * 0.4;
-    var figH = ringR * 0.9;
-    c2d.beginPath();
-    c2d.arc(W/2, fy - figH*0.35, figH*0.12, 0, Math.PI*2);
-    c2d.fillStyle = stageIdx >= 4 ? "hsla(45,90%,70%,0.9)" : "hsla("+bgHue+",40%,50%,0.8)";
-    c2d.fill();
-    if (stageIdx >= 7) {
-      c2d.beginPath();
-      c2d.arc(W/2, fy - figH*0.35, figH*0.2 + Math.sin(frame*0.05)*4, 0, Math.PI*2);
-      c2d.strokeStyle = "hsla(45,90%,75%,0.6)";
-      c2d.lineWidth = 2; c2d.stroke();
-    }
-    c2d.beginPath();
-    c2d.moveTo(W/2 - figH*0.18, fy - figH*0.25);
-    c2d.quadraticCurveTo(W/2, fy + figH*0.1, W/2 + figH*0.18, fy - figH*0.25);
-    c2d.fillStyle = stageIdx >= 4 ? "hsla(45,70%,60%,0.5)" : "hsla("+bgHue+",30%,35%,0.5)";
-    c2d.fill();
-    c2d.beginPath();
-    c2d.arc(W/2, fy + figH*0.15, figH*0.16, Math.PI, 0);
-    c2d.strokeStyle = stageIdx >= 4 ? "hsla(45,70%,60%,0.5)" : "hsla("+bgHue+",30%,35%,0.5)";
-    c2d.lineWidth = 3; c2d.stroke();
-
     requestAnimationFrame(draw);
   }
+  initVisuals();
   draw();
 
   /* ── Az út ── */
@@ -736,12 +753,25 @@
   /* ── A gombok ── */
   btnJourney.addEventListener("click", journey);
 
+  var mantraAudio = null;   // a valódi emberi OM·AH·HUM
   btnMantra.addEventListener("click", function () {
-    ensureCtx();
-    if (mantraOn) { mantraOn = false; clearInterval(mantraTimer); btnMantra.textContent = "▶ " + UI[currentLang].mantra; btnMantra.classList.remove("active"); return; }
+    if (mantraOn) {
+      mantraOn = false; clearInterval(mantraTimer);
+      if (mantraAudio) { mantraAudio.pause(); mantraAudio = null; }
+      btnMantra.textContent = "▶ " + UI[currentLang].mantra; btnMantra.classList.remove("active");
+      return;
+    }
     mantraOn = true; btnMantra.textContent = "■ " + UI[currentLang].mantra; btnMantra.classList.add("active");
-    mantraNext = ctx.currentTime + 0.1; mantraStepIdx = 0;
-    mantraTimer = setInterval(mantraScheduler, 25);
+    // a valódi emberi OM·AH·HUM (gpt-4o-mini-tts), loop-ban
+    mantraAudio = new Audio("audio/om-ah-hum.mp3");
+    mantraAudio.loop = true;
+    mantraAudio.volume = 0.85;
+    mantraAudio.play().catch(function () {
+      // fallback: a szintetikus motor
+      ensureCtx();
+      mantraNext = ctx.currentTime + 0.1; mantraStepIdx = 0;
+      mantraTimer = setInterval(mantraScheduler, 25);
+    });
     statusEl.textContent = UI[currentLang].mantraOn;
   });
 
@@ -777,6 +807,8 @@
       mantraOn = chorusOn = bookOn = pujaOn = journeyOn = false;
       [mantraTimer, chorusTimer, pujaTimer, journeyTimer].forEach(function(t){ if(t) clearInterval(t); });
       if (speechSynthesis) speechSynthesis.cancel();
+      if (mantraAudio) { mantraAudio.pause(); mantraAudio = null; }
+      if (bookAudio) { bookAudio.pause(); bookAudio = null; }
       btnMantra.textContent = "▶ " + UI[currentLang].mantra; btnChorus.textContent = "▶ " + UI[currentLang].chorus;
       btnBook.textContent = "▶ " + UI[currentLang].book; btnPuja.textContent = "▶ " + UI[currentLang].puja; btnJourney.textContent = "▶ " + UI[currentLang].journey;
       [btnMantra,btnChorus,btnBook,btnPuja,btnJourney].forEach(function(b){ b.classList.remove("active"); });
@@ -786,8 +818,12 @@
     }
     ensureCtx();
     mantraOn = true; btnMantra.textContent = "■ " + UI[currentLang].mantra; btnMantra.classList.add("active");
-    mantraNext = ctx.currentTime + 0.1; mantraStepIdx = 0;
-    mantraTimer = setInterval(mantraScheduler, 25);
+    mantraAudio = new Audio("audio/om-ah-hum.mp3");
+    mantraAudio.loop = true; mantraAudio.volume = 0.85;
+    mantraAudio.play().catch(function () {
+      mantraNext = ctx.currentTime + 0.1; mantraStepIdx = 0;
+      mantraTimer = setInterval(mantraScheduler, 25);
+    });
     chorusOn = true; btnChorus.textContent = "■ " + UI[currentLang].chorus; btnChorus.classList.add("active");
     chorusNext = ctx.currentTime + 0.1; chorusStepIdx = 0;
     chorusTimer = setInterval(chorusScheduler, 25);
@@ -825,7 +861,7 @@
     btnAll.textContent = (anyOn() ? "■ " : "▶ ") + UI[lang].all;
     statusEl.textContent = UI[lang].status;
     // ha a könyv szól, újraindítjuk az új nyelven
-    if (bookOn) { speechSynthesis.cancel(); bookEl.classList.remove("show"); setTimeout(readBook, 300); }
+    if (bookOn) { if (bookAudio) { bookAudio.pause(); bookAudio = null; } speechSynthesis.cancel(); bookEl.classList.remove("show"); setTimeout(readBook, 300); }
   }
   function anyOn() { return mantraOn || chorusOn || bookOn || pujaOn || journeyOn; }
 

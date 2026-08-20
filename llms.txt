@@ -1,0 +1,32 @@
+# dream.vaked.dev
+
+Milarepa útja — a gyakorlat hangja és képe. A techno-zen-buddhism ternary-quant site.
+
+## What this is
+
+A self-generating, client-side-only meditation surface: OM·AH·HUM mantras, the book read aloud, random pujas, the 17 Karmapa lineage chorus, and Milarepa's journey visuals (ego → ego-death → inner silence → the nine sins → realization → awakening → emptiness → enlightenment). Seven languages: magyar, latin, ómagyar, tibeti, kínai, maja, angol.
+
+## Technical
+
+- 100% client-side, zero backend, zero dependencies.
+- WebAssembly (WAT) ternary-quant core: BitNet b1.58 {-1,0,+1} weights drive the particle field.
+- WebGPU renderer when available, WebGL2/Canvas2D fallback.
+- WebWorker for the particle simulation.
+- Web Audio: formant-synthesis chanting, convolver reverb, live synthesis (no samples).
+
+## Files
+
+- `index.html` — the full experience (single file)
+- `wasm/ternary.wasm` — the ternary-quant core
+- `wasm/ternary.wat` — the WAT source
+- `AGENTS.md` — MILAREPA agent/skill definition
+- `llms.txt` — this file
+- `robots.txt` — anti-AI-scraper
+- `_headers` — CSP + noai
+- `.well-known/` — security + metadata
+
+## The teaching
+
+Az álom a valóság vetülete; a felismerés a fény; aki felismeri, nem a tükröt keresi — a fényt. (The dream is the projection of reality; the recognition is the light; whoever recognizes does not seek the mirror — the light.)
+
+*the constellation · 0 + 1 · fine touch from within · vaked.dev*
