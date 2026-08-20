@@ -765,7 +765,7 @@
     // a valódi emberi OM·AH·HUM (gpt-4o-mini-tts), loop-ban
     mantraAudio = new Audio("audio/om-ah-hum.mp3");
     mantraAudio.loop = true;
-    mantraAudio.volume = 0.55;
+    mantraAudio.volume = 0.34;
     mantraAudio.play().catch(function () {
       // fallback: a szintetikus motor
       ensureCtx();
@@ -819,7 +819,7 @@
     ensureCtx();
     mantraOn = true; btnMantra.textContent = "■ " + UI[currentLang].mantra; btnMantra.classList.add("active");
     mantraAudio = new Audio("audio/om-ah-hum.mp3");
-    mantraAudio.loop = true; mantraAudio.volume = 0.55;
+    mantraAudio.loop = true; mantraAudio.volume = 0.34;
     mantraAudio.play().catch(function () {
       mantraNext = ctx.currentTime + 0.1; mantraStepIdx = 0;
       mantraTimer = setInterval(mantraScheduler, 25);
