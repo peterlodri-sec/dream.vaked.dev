@@ -264,5 +264,118 @@
     }
   }
 
-  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden };
+  /* ── Buddha-formák: Mahakala (jobb felső) + Csenrezig (bal felső) ──
+     forma (sziluett) · alak (a mandala) · sugárzás (aura) · fény (a ragyogás) */
+  function drawBuddhaForms(time, stage) {
+    var cx = W / 2, cy = H / 2;
+    var pulse = 0.5 + 0.5 * Math.sin(time * 0.01);
+    var size = Math.min(W, H) * 0.16;
+
+    /* ── MAHAKALA — a dühös védelmező, a tűzgyűrű ── (jobb felső) */
+    var mx = W - size * 1.1, my = size * 1.1;
+    // sugárzás: a tűz-aura
+    var aura = ctx2d.createRadialGradient(mx, my, 0, mx, my, size * 1.6);
+    aura.addColorStop(0, "hsla(20,95%,55%,0.28)");
+    aura.addColorStop(0.6, "hsla(15,90%,40%,0.10)");
+    aura.addColorStop(1, "hsla(15,90%,30%,0)");
+    ctx2d.fillStyle = aura;
+    ctx2d.beginPath();
+    ctx2d.arc(mx, my, size * 1.6, 0, Math.PI * 2);
+    ctx2d.fill();
+    // a tűzgyűrű (a Mahakala jelképe)
+    ctx2d.beginPath();
+    ctx2d.arc(mx, my, size * 1.15, 0, Math.PI * 2);
+    ctx2d.strokeStyle = "hsla(20,95%,60%," + (0.5 + pulse * 0.3) + ")";
+    ctx2d.lineWidth = 2.5;
+    ctx2d.stroke();
+    // a gyűrű lángjai
+    for (var i = 0; i < 16; i++) {
+      var ang = i / 16 * Math.PI * 2 + time * 0.02;
+      var rr = size * 1.15 + Math.sin(time * 0.05 + i * 2) * 4;
+      var lx = mx + Math.cos(ang) * rr, ly = my + Math.sin(ang) * rr;
+      ctx2d.beginPath();
+      ctx2d.arc(lx, ly, 2 + Math.sin(time * 0.1 + i) * 1.2, 0, Math.PI * 2);
+      ctx2d.fillStyle = "hsla(25,95%,60%," + (0.5 + pulse * 0.3) + ")";
+      ctx2d.fill();
+    }
+    // a forma: a dühös alak (a fej + a korona + a test)
+    ctx2d.beginPath();
+    ctx2d.arc(mx, my - size * 0.2, size * 0.22, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(25,60%,35%,0.9)";
+    ctx2d.fill();
+    // a korona (az öt koponya)
+    for (var c = 0; c < 5; c++) {
+      var ca = -Math.PI / 2 + (c - 2) * 0.5;
+      var cr = size * 0.3;
+      ctx2d.beginPath();
+      ctx2d.arc(mx + Math.cos(ca) * cr, my - size * 0.2 + Math.sin(ca) * cr, 3, 0, Math.PI * 2);
+      ctx2d.fillStyle = "hsla(40,60%,80%,0.8)";
+      ctx2d.fill();
+    }
+    // a test (a tűzben álló)
+    ctx2d.beginPath();
+    ctx2d.moveTo(mx - size * 0.25, my + size * 0.5);
+    ctx2d.quadraticCurveTo(mx, my + size * 0.1, mx + size * 0.25, my + size * 0.5);
+    ctx2d.fillStyle = "hsla(25,60%,30%,0.7)";
+    ctx2d.fill();
+    // a fény: a szemek (a dühös tekintet)
+    ctx2d.beginPath();
+    ctx2d.arc(mx - size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
+    ctx2d.arc(mx + size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(45,100%,75%,0.95)";
+    ctx2d.fill();
+
+    /* ── CSENREZIG — Avalokiteśvara, az együttérzés ── (bal felső) */
+    var ax = size * 1.1, ay = size * 1.1;
+    // sugárzás: a fehér-fény aura
+    var aaura = ctx2d.createRadialGradient(ax, ay, 0, ax, ay, size * 1.6);
+    aaura.addColorStop(0, "hsla(210,80%,85%,0.30)");
+    aaura.addColorStop(0.6, "hsla(210,70%,70%,0.12)");
+    aaura.addColorStop(1, "hsla(210,70%,60%,0)");
+    ctx2d.fillStyle = aaura;
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay, size * 1.6, 0, Math.PI * 2);
+    ctx2d.fill();
+    // a halo (a megvilágosodás fénye)
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay - size * 0.2, size * 0.3 + pulse * 4, 0, Math.PI * 2);
+    ctx2d.strokeStyle = "hsla(210,90%,85%," + (0.4 + pulse * 0.3) + ")";
+    ctx2d.lineWidth = 2;
+    ctx2d.stroke();
+    // a forma: a békés alak (a fej + a korona + a test)
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay - size * 0.2, size * 0.2, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(210,40%,90%,0.9)";
+    ctx2d.fill();
+    // a korona (a meditációs Buddha)
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay - size * 0.42, size * 0.09, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(210,60%,85%,0.8)";
+    ctx2d.fill();
+    // a test (a meditáló, keresztbe tett lábakkal)
+    ctx2d.beginPath();
+    ctx2d.moveTo(ax - size * 0.22, ay + size * 0.45);
+    ctx2d.quadraticCurveTo(ax, ay + size * 0.05, ax + size * 0.22, ay + size * 0.45);
+    ctx2d.fillStyle = "hsla(210,40%,85%,0.7)";
+    ctx2d.fill();
+    // a keresztbe tett lábak
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay + size * 0.42, size * 0.14, Math.PI, 0);
+    ctx2d.strokeStyle = "hsla(210,40%,85%,0.7)";
+    ctx2d.lineWidth = 3;
+    ctx2d.stroke();
+    // a fény: a szív (az együttérzés) és a szemek
+    ctx2d.beginPath();
+    ctx2d.arc(ax - size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
+    ctx2d.arc(ax + size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(210,100%,95%,0.95)";
+    ctx2d.fill();
+    // a szív-fény a mellkasban
+    ctx2d.beginPath();
+    ctx2d.arc(ax, ay + size * 0.1, 3 + pulse * 2, 0, Math.PI * 2);
+    ctx2d.fillStyle = "hsla(340,80%,80%,0.7)";
+    ctx2d.fill();
+  }
+
+  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms };
 })();
