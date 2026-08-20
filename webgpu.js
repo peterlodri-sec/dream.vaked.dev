@@ -6,6 +6,10 @@
 (function () {
   const canvas = document.getElementById("scene");
   const ctx2d = canvas.getContext("2d");
+  // overlay canvas: a 2D elemek (Kagyu-fa, zen-kert, buddha-formák) mindig rajzolódnak,
+  // GPU-módtól függetlenül — a hang is innen indul
+  const overlay = document.getElementById("overlay");
+  const octx = overlay ? overlay.getContext("2d") : ctx2d;
 
   let gpu = null;       // { device, pipeline, bindGroup, vertBuf, uniformBuf, renderPass }
   let useGPU = false;
@@ -16,6 +20,7 @@
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
+    if (overlay) { overlay.width = W; overlay.height = H; }
   }
   window.addEventListener("resize", resize);
   resize();
@@ -204,6 +209,8 @@
     "Ogyen Trinley Dorje"
   ];
   function drawKagyuTree(time, stage) {
+    // az overlay törlése minden frame-ben (különben elkenődik)
+    octx.clearRect(0, 0, W, H);
     // a fa a bal felső sarokban nő, a felhők a gyökerekből
     var baseX = W * 0.12, baseY = H * 0.88;
     var trunkH = Math.min(H, W) * 0.18;
@@ -216,26 +223,26 @@
       // a felhő (a Karmapa feje)
       var cloudR = 4 + t * 10 + Math.sin(time * 0.01 + i) * 1.5;
       var alpha = 0.25 + t * 0.5;
-      ctx2d.beginPath();
-      ctx2d.arc(x, y, cloudR, 0, Math.PI * 2);
-      ctx2d.fillStyle = "hsla(" + (bgHue + 20) + ",60%,70%," + alpha + ")";
-      ctx2d.fill();
+      octx.beginPath();
+      octx.arc(x, y, cloudR, 0, Math.PI * 2);
+      octx.fillStyle = "hsla(" + (bgHue + 20) + ",60%,70%," + alpha + ")";
+      octx.fill();
       // a törzs (a vonal)
       if (i > 0) {
         var py = baseY - trunkH * ((i - 1) / (count - 1));
         var px = baseX + Math.sin((i - 1) / (count - 1) * 3.1 + time * 0.001) * Math.sin((i - 1) / (count - 1) * Math.PI) * W * 0.18 * 0.5;
-        ctx2d.beginPath();
-        ctx2d.moveTo(px, py);
-        ctx2d.lineTo(x, y);
-        ctx2d.strokeStyle = "hsla(" + (bgHue + 10) + ",40%,50%,0.3)";
-        ctx2d.lineWidth = 1;
-        ctx2d.stroke();
+        octx.beginPath();
+        octx.moveTo(px, py);
+        octx.lineTo(x, y);
+        octx.strokeStyle = "hsla(" + (bgHue + 10) + ",40%,50%,0.3)";
+        octx.lineWidth = 1;
+        octx.stroke();
       }
       // a név (a megvilágosodásnál fényesebb)
       if (stage >= 7 && i % 4 === 0) {
-        ctx2d.font = "7px 'SF Mono',monospace";
-        ctx2d.fillStyle = "hsla(45,90%,75%,0.5)";
-        ctx2d.fillText(KAGYU[i], x + cloudR + 3, y + 3);
+        octx.font = "7px 'SF Mono',monospace";
+        octx.fillStyle = "hsla(45,90%,75%,0.5)";
+        octx.fillText(KAGYU[i], x + cloudR + 3, y + 3);
       }
     }
   }
@@ -248,19 +255,19 @@
     for (var i = 0; i < 6; i++) {
       var r = maxR * (0.3 + i * 0.12);
       var wobble = Math.sin(time * 0.002 + i) * 2;
-      ctx2d.beginPath();
-      ctx2d.arc(cx, cy, r + wobble, 0, Math.PI * 2);
-      ctx2d.strokeStyle = "hsla(" + bgHue + ",30%,45%,0.12)";
-      ctx2d.lineWidth = 1;
-      ctx2d.stroke();
+      octx.beginPath();
+      octx.arc(cx, cy, r + wobble, 0, Math.PI * 2);
+      octx.strokeStyle = "hsla(" + bgHue + ",30%,45%,0.12)";
+      octx.lineWidth = 1;
+      octx.stroke();
     }
     // a kavicsok (a részecskék a homokon)
     for (var p = 0; p < points.length && p < 40; p++) {
       var pt = points[p];
-      ctx2d.beginPath();
-      ctx2d.arc(pt.x, pt.y, 1.2, 0, Math.PI * 2);
-      ctx2d.fillStyle = "hsla(" + pt.hue + ",40%,60%,0.4)";
-      ctx2d.fill();
+      octx.beginPath();
+      octx.arc(pt.x, pt.y, 1.2, 0, Math.PI * 2);
+      octx.fillStyle = "hsla(" + pt.hue + ",40%,60%,0.4)";
+      octx.fill();
     }
   }
 
@@ -294,107 +301,107 @@
     /* ── MAHAKALA — a dühös védelmező, a tűzgyűrű ── (jobb felső) */
     var mx = W - size * 1.1, my = size * 1.1;
     // sugárzás: a tűz-aura
-    var aura = ctx2d.createRadialGradient(mx, my, 0, mx, my, size * 1.6);
+    var aura = octx.createRadialGradient(mx, my, 0, mx, my, size * 1.6);
     aura.addColorStop(0, "hsla(20,95%,55%,0.28)");
     aura.addColorStop(0.6, "hsla(15,90%,40%,0.10)");
     aura.addColorStop(1, "hsla(15,90%,30%,0)");
-    ctx2d.fillStyle = aura;
-    ctx2d.beginPath();
-    ctx2d.arc(mx, my, size * 1.6, 0, Math.PI * 2);
-    ctx2d.fill();
+    octx.fillStyle = aura;
+    octx.beginPath();
+    octx.arc(mx, my, size * 1.6, 0, Math.PI * 2);
+    octx.fill();
     // a tűzgyűrű (a Mahakala jelképe)
-    ctx2d.beginPath();
-    ctx2d.arc(mx, my, size * 1.15, 0, Math.PI * 2);
-    ctx2d.strokeStyle = "hsla(20,95%,60%," + (0.5 + pulse * 0.3) + ")";
-    ctx2d.lineWidth = 2.5;
-    ctx2d.stroke();
+    octx.beginPath();
+    octx.arc(mx, my, size * 1.15, 0, Math.PI * 2);
+    octx.strokeStyle = "hsla(20,95%,60%," + (0.5 + pulse * 0.3) + ")";
+    octx.lineWidth = 2.5;
+    octx.stroke();
     // a gyűrű lángjai
     for (var i = 0; i < 16; i++) {
       var ang = i / 16 * Math.PI * 2 + time * 0.02;
       var rr = size * 1.15 + Math.sin(time * 0.05 + i * 2) * 4;
       var lx = mx + Math.cos(ang) * rr, ly = my + Math.sin(ang) * rr;
-      ctx2d.beginPath();
-      ctx2d.arc(lx, ly, 2 + Math.sin(time * 0.1 + i) * 1.2, 0, Math.PI * 2);
-      ctx2d.fillStyle = "hsla(25,95%,60%," + (0.5 + pulse * 0.3) + ")";
-      ctx2d.fill();
+      octx.beginPath();
+      octx.arc(lx, ly, 2 + Math.sin(time * 0.1 + i) * 1.2, 0, Math.PI * 2);
+      octx.fillStyle = "hsla(25,95%,60%," + (0.5 + pulse * 0.3) + ")";
+      octx.fill();
     }
     // a forma: a dühös alak (a fej + a korona + a test)
-    ctx2d.beginPath();
-    ctx2d.arc(mx, my - size * 0.2, size * 0.22, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(25,60%,35%,0.9)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(mx, my - size * 0.2, size * 0.22, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(25,60%,35%,0.9)";
+    octx.fill();
     // a korona (az öt koponya)
     for (var c = 0; c < 5; c++) {
       var ca = -Math.PI / 2 + (c - 2) * 0.5;
       var cr = size * 0.3;
-      ctx2d.beginPath();
-      ctx2d.arc(mx + Math.cos(ca) * cr, my - size * 0.2 + Math.sin(ca) * cr, 3, 0, Math.PI * 2);
-      ctx2d.fillStyle = "hsla(40,60%,80%,0.8)";
-      ctx2d.fill();
+      octx.beginPath();
+      octx.arc(mx + Math.cos(ca) * cr, my - size * 0.2 + Math.sin(ca) * cr, 3, 0, Math.PI * 2);
+      octx.fillStyle = "hsla(40,60%,80%,0.8)";
+      octx.fill();
     }
     // a test (a tűzben álló)
-    ctx2d.beginPath();
-    ctx2d.moveTo(mx - size * 0.25, my + size * 0.5);
-    ctx2d.quadraticCurveTo(mx, my + size * 0.1, mx + size * 0.25, my + size * 0.5);
-    ctx2d.fillStyle = "hsla(25,60%,30%,0.7)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.moveTo(mx - size * 0.25, my + size * 0.5);
+    octx.quadraticCurveTo(mx, my + size * 0.1, mx + size * 0.25, my + size * 0.5);
+    octx.fillStyle = "hsla(25,60%,30%,0.7)";
+    octx.fill();
     // a fény: a szemek (a dühös tekintet)
-    ctx2d.beginPath();
-    ctx2d.arc(mx - size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
-    ctx2d.arc(mx + size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(45,100%,75%,0.95)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(mx - size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
+    octx.arc(mx + size * 0.09, my - size * 0.24, 2.5, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(45,100%,75%,0.95)";
+    octx.fill();
 
     /* ── CSENREZIG — Avalokiteśvara, az együttérzés ── (bal felső) */
     var ax = size * 1.1, ay = size * 1.1;
     // sugárzás: a fehér-fény aura
-    var aaura = ctx2d.createRadialGradient(ax, ay, 0, ax, ay, size * 1.6);
+    var aaura = octx.createRadialGradient(ax, ay, 0, ax, ay, size * 1.6);
     aaura.addColorStop(0, "hsla(210,80%,85%,0.30)");
     aaura.addColorStop(0.6, "hsla(210,70%,70%,0.12)");
     aaura.addColorStop(1, "hsla(210,70%,60%,0)");
-    ctx2d.fillStyle = aaura;
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay, size * 1.6, 0, Math.PI * 2);
-    ctx2d.fill();
+    octx.fillStyle = aaura;
+    octx.beginPath();
+    octx.arc(ax, ay, size * 1.6, 0, Math.PI * 2);
+    octx.fill();
     // a halo (a megvilágosodás fénye)
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay - size * 0.2, size * 0.3 + pulse * 4, 0, Math.PI * 2);
-    ctx2d.strokeStyle = "hsla(210,90%,85%," + (0.4 + pulse * 0.3) + ")";
-    ctx2d.lineWidth = 2;
-    ctx2d.stroke();
+    octx.beginPath();
+    octx.arc(ax, ay - size * 0.2, size * 0.3 + pulse * 4, 0, Math.PI * 2);
+    octx.strokeStyle = "hsla(210,90%,85%," + (0.4 + pulse * 0.3) + ")";
+    octx.lineWidth = 2;
+    octx.stroke();
     // a forma: a békés alak (a fej + a korona + a test)
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay - size * 0.2, size * 0.2, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(210,40%,90%,0.9)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(ax, ay - size * 0.2, size * 0.2, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(210,40%,90%,0.9)";
+    octx.fill();
     // a korona (a meditációs Buddha)
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay - size * 0.42, size * 0.09, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(210,60%,85%,0.8)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(ax, ay - size * 0.42, size * 0.09, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(210,60%,85%,0.8)";
+    octx.fill();
     // a test (a meditáló, keresztbe tett lábakkal)
-    ctx2d.beginPath();
-    ctx2d.moveTo(ax - size * 0.22, ay + size * 0.45);
-    ctx2d.quadraticCurveTo(ax, ay + size * 0.05, ax + size * 0.22, ay + size * 0.45);
-    ctx2d.fillStyle = "hsla(210,40%,85%,0.7)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.moveTo(ax - size * 0.22, ay + size * 0.45);
+    octx.quadraticCurveTo(ax, ay + size * 0.05, ax + size * 0.22, ay + size * 0.45);
+    octx.fillStyle = "hsla(210,40%,85%,0.7)";
+    octx.fill();
     // a keresztbe tett lábak
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay + size * 0.42, size * 0.14, Math.PI, 0);
-    ctx2d.strokeStyle = "hsla(210,40%,85%,0.7)";
-    ctx2d.lineWidth = 3;
-    ctx2d.stroke();
+    octx.beginPath();
+    octx.arc(ax, ay + size * 0.42, size * 0.14, Math.PI, 0);
+    octx.strokeStyle = "hsla(210,40%,85%,0.7)";
+    octx.lineWidth = 3;
+    octx.stroke();
     // a fény: a szív (az együttérzés) és a szemek
-    ctx2d.beginPath();
-    ctx2d.arc(ax - size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
-    ctx2d.arc(ax + size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(210,100%,95%,0.95)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(ax - size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
+    octx.arc(ax + size * 0.08, ay - size * 0.24, 2, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(210,100%,95%,0.95)";
+    octx.fill();
     // a szív-fény a mellkasban
-    ctx2d.beginPath();
-    ctx2d.arc(ax, ay + size * 0.1, 3 + pulse * 2, 0, Math.PI * 2);
-    ctx2d.fillStyle = "hsla(340,80%,80%,0.7)";
-    ctx2d.fill();
+    octx.beginPath();
+    octx.arc(ax, ay + size * 0.1, 3 + pulse * 2, 0, Math.PI * 2);
+    octx.fillStyle = "hsla(340,80%,80%,0.7)";
+    octx.fill();
   }
 
   window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms, startBuddhaAudio, stopBuddhaAudio };
