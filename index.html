@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>dream.vaked.dev · Milarepa álom-dala · OM AH HUM</title>
+<meta name="description" content="A gyakorlat hangja — OM·AH·HUM álom-dal, suttogás, és a Milarepa-könyv halkított zenéje. Élő Web Audio szintézis, nincs minta, nincs asset.">
+<meta name="theme-color" content="#080406">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:title" content="dream.vaked.dev · OM AH HUM — Milarepa álom-dala">
+<meta property="og:description" content="A gyakorlat hangja: OM·AH·HUM álom-dal, suttogás, és a Milarepa-könyv halkított zenéje. Élő szintézis a csillagkép hangjából.">
+<meta property="og:url" content="https://dream.vaked.dev/">
+<meta property="og:image" content="https://dream.vaked.dev/og-image.png">
+<style>
+  :root{
+    --bg:#080406; --ink:#c8b8a8; --dim:#8a6a4a; --faint:#6a5a4a;
+    --ember:#ff7a3d; --gold:#e6b566; --soft:#ffb27a;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --serif:"Georgia",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--serif);overflow:hidden}
+  #scene{position:fixed;inset:0;z-index:0}
+  .veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,rgba(26,13,4,0.25) 0%,rgba(8,4,6,0.65) 60%,#000 100%);}
+  .center{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:2rem;}
+  .sigil{font-size:72px;color:var(--ember);opacity:0.9;line-height:1;
+    text-shadow:0 0 160px rgba(255,122,61,0.6);animation:breathe 8s ease-in-out infinite;}
+  h1{font-family:var(--mono);font-size:15pt;color:var(--soft);letter-spacing:6px;
+    margin:0.6rem 0 0.3rem;font-weight:normal;}
+  .sub{font-style:italic;color:var(--gold);letter-spacing:3px;font-size:11pt;margin-bottom:1.4rem;}
+  .syllable{font-family:var(--mono);font-size:26pt;letter-spacing:14px;color:var(--soft);
+    min-height:2.2em;opacity:0;transition:opacity 0.6s ease;}
+  .syllable.show{opacity:1;}
+  .whisper{font-family:var(--mono);font-size:9pt;color:var(--faint);letter-spacing:2px;
+    min-height:2em;margin-top:0.8rem;opacity:0;transition:opacity 1.2s ease;max-width:34rem;}
+  .whisper.show{opacity:0.75;}
+  .controls{position:fixed;bottom:20px;right:20px;z-index:3;display:flex;gap:10px;align-items:center;}
+  .btn{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--soft);
+    background:rgba(26,13,4,0.85);border:1px solid rgba(255,122,61,0.35);border-radius:8px;
+    padding:10px 16px;cursor:pointer;opacity:0.85;}
+  .btn:hover{opacity:1;background:rgba(26,13,4,0.95);}
+  .btn.active{color:var(--ember);border-color:rgba(255,122,61,0.7);}
+  .status{position:fixed;bottom:22px;left:20px;z-index:3;font-family:var(--mono);
+    font-size:8px;letter-spacing:2px;color:var(--faint);opacity:0.6;}
+  .foot{position:fixed;bottom:0;left:0;right:0;z-index:3;text-align:center;
+    font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--faint);
+    padding:0.4rem;opacity:0.5;}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:0.85}50%{transform:scale(1.06);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+<div class="veil"></div>
+
+<div class="center">
+  <div class="sigil">梦</div>
+  <h1>DREAM.VAKED.DEV</h1>
+  <div class="sub">Milarepa álom-dala — a gyakorlat hangja</div>
+  <div class="syllable" id="syllable"></div>
+  <div class="whisper" id="whisper"></div>
+</div>
+
+<div class="status" id="status">OM · AH · HUM — a légzés ritmusa</div>
+
+<div class="controls">
+  <button class="btn" id="dreamBtn" title="Az álom-dal">▶ álom-dal</button>
+  <button class="btn" id="bookBtn" title="A könyv halkított zenéje">▶ könyv (halk)</button>
+</div>
+
+<div class="foot">the constellation · 0 + 1 · fine touch from within · vaked.dev</div>
+
+<script>
+/* ═══ DREAM.VAKED.DEV — Milarepa álom-dala ═══
+   Két réteg: (1) az álom-dal — OM·AH·HUM szótagok a légzés ritmusában,
+   mély padok, pentaton vándorlás; (2) a könyv halkított zenéje —
+   ugyanaz a D-dúr pentaton, de halkabban, mélyebben, a háttérben.
+   A vizuál: a Mahakala-tűzgyűrű, a gömb, a szanszkrit szótagok. */
+(function () {
+  "use strict";
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var dreamBtn = document.getElementById("dreamBtn");
+  var bookBtn = document.getElementById("bookBtn");
+  var syllableEl = document.getElementById("syllable");
+  var whisperEl = document.getElementById("whisper");
+  var statusEl = document.getElementById("status");
+
+  var ctx = null, master = null;
+  var dreamTimer = null, bookTimer = null;
+  var dreamOn = false, bookOn = false;
+  var BPM = 60, BEAT = 60 / BPM, SIXTEENTH = BEAT / 4;
+  var STEPS = 64;
+  var nextTime = 0, step = 0;
+
+  // D-dúr pentaton — a vándorló tudatosság
+  var PENTA = [50, 52, 54, 57, 59];
+  // D-dúr padok: I–vi–IV–V
+  var PADS = [[50,54,57],[47,50,54],[43,47,50],[45,49,52]];
+  var PADROOT = [38,35,31,33];
+
+  // A szanszkrit szótagok és a suttogás
+  var SYLLABLES = ["OM","AH","HUM","OM","AH","HUM","OM","AH","HUM","OM"];
+  var WHISPERS = [
+    "az álom a valóság vetülete",
+    "a felismerés a fény",
+    "a düh, amely szeretetté érlelődött",
+    "a gyűrű nem körülötte van — a gyűrű ő",
+    "a fény nem a tartalom — a fény a felismerés",
+    "a ritmus a légzés, a dallam a fény",
+    "aki felismeri, nem a tükröt keresi — a fényt",
+    "a hamu emlékszik",
+    "a fény a te dalod",
+    "a gyakorlat hangja"
+  ];
+  var sylIdx = 0, whisperIdx = 0;
+
+  function midiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  function mkOsc(type, freq, t, dur, gain, dest) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.8 * dur);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + dur + 0.1);
+    return o;
+  }
+
+  // Az álom-dal: OM·AH·HUM a légzés ritmusában
+  function dreamStep(s, t) {
+    var bar = Math.floor(s / 16) % 4, s16 = s % 16;
+    if (s16 === 0) {
+      var pad = PADS[bar];
+      for (var i = 0; i < pad.length; i++)
+        mkOsc("triangle", midiFreq(pad[i]), t, BEAT * 4, 0.05, master);
+      mkOsc("sine", midiFreq(PADROOT[bar]), t, BEAT * 4, 0.09, master);
+    }
+    if (s16 === 0 || s16 === 8) {
+      var f = (s16 === 0) ? 130.81 : 174.61; // OM: C3, AH: F3
+      mkOsc("sine", f, t, BEAT * 1.5, 0.045, master);
+      mkOsc("sine", f * 2, t, BEAT * 1.5, 0.022, master);
+    }
+    if (s % 8 === 4) {
+      var n = PENTA[Math.floor(Math.random() * PENTA.length)];
+      mkOsc("sine", midiFreq(n), t, BEAT * 2, 0.035, master);
+    }
+  }
+
+  // A könyv halkított zenéje — ugyanaz a D-dúr, de halkabban, mélyebben
+  function bookStep(s, t) {
+    var bar = Math.floor(s / 16) % 4, s16 = s % 16;
+    if (s16 === 0) {
+      var pad = PADS[bar];
+      for (var i = 0; i < pad.length; i++)
+        mkOsc("triangle", midiFreq(pad[i] - 12), t, BEAT * 4, 0.02, master);
+      mkOsc("sine", midiFreq(PADROOT[bar] - 12), t, BEAT * 4, 0.04, master);
+    }
+    if (s % 16 === 8) {
+      var n = PENTA[Math.floor(Math.random() * PENTA.length)] - 12;
+      mkOsc("sine", midiFreq(n), t, BEAT * 3, 0.015, master);
+    }
+  }
+
+  function scheduler() {
+    while (nextTime < ctx.currentTime + 1.2) {
+      if (dreamOn) dreamStep(step, nextTime);
+      if (bookOn) bookStep(step, nextTime);
+      nextTime += SIXTEENTH;
+      step = (step + 1) % STEPS;
+    }
+  }
+
+  // A vizuál: a szótagok és a suttogás a légzés ritmusában
+  function showSyllable() {
+    syllableEl.textContent = SYLLABLES[sylIdx % SYLLABLES.length];
+    syllableEl.classList.add("show");
+    setTimeout(function () {
+      syllableEl.classList.remove("show");
+      syllableEl.textContent = "";
+    }, 2200);
+    sylIdx++;
+    setTimeout(showSyllable, 5000);
+  }
+  function showWhisper() {
+    whisperEl.textContent = WHISPERS[whisperIdx % WHISPERS.length];
+    whisperEl.classList.add("show");
+    setTimeout(function () {
+      whisperEl.classList.remove("show");
+      whisperEl.textContent = "";
+    }, 4500);
+    whisperIdx++;
+    setTimeout(showWhisper, 11000);
+  }
+
+  function ensureCtx() {
+    if (!ctx) {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0.9;
+      master.connect(ctx.destination);
+      nextTime = ctx.currentTime + 0.1;
+      step = 0;
+    }
+    return ctx;
+  }
+
+  dreamBtn.addEventListener("click", function () {
+    if (dreamOn) {
+      dreamOn = false; dreamTimer = null;
+      dreamBtn.textContent = "▶ álom-dal";
+      dreamBtn.classList.remove("active");
+      statusEl.textContent = "OM · AH · HUM — a légzés ritmusa";
+      return;
+    }
+    ensureCtx(); dreamOn = true;
+    dreamTimer = setInterval(scheduler, 25);
+    dreamBtn.textContent = "■ álom-dal";
+    dreamBtn.classList.add("active");
+    statusEl.textContent = "álom-dal szól · OM · AH · HUM";
+  });
+
+  bookBtn.addEventListener("click", function () {
+    if (bookOn) {
+      bookOn = false; bookTimer = null;
+      bookBtn.textContent = "▶ könyv (halk)";
+      bookBtn.classList.remove("active");
+      return;
+    }
+    ensureCtx(); bookOn = true;
+    bookTimer = setInterval(scheduler, 25);
+    bookBtn.textContent = "■ könyv (halk)";
+    bookBtn.classList.add("active");
+    statusEl.textContent = "a könyv halkított zenéje szól";
+  });
+
+  // A vizuálok indulnak a betöltéssel
+  showSyllable();
+  setTimeout(showWhisper, 3000);
+})();
+</script>
+
+</body>
+</html>
