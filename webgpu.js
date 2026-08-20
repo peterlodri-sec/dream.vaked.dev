@@ -404,5 +404,46 @@
     octx.fill();
   }
 
-  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms, startBuddhaAudio, stopBuddhaAudio };
+  /* ── Végtelen mantra-rajz: a mandala ──
+     A hangoskönyv végén a mandala spirál-rajza az overlay canvasen. */
+  var mantraDrawOn = false, mantraDrawTime = 0;
+  function startMantraDraw() { mantraDrawOn = true; mantraDrawTime = 0; }
+  function stopMantraDraw() { mantraDrawOn = false; }
+  function drawMantra(time, stage) {
+    if (!mantraDrawOn) return;
+    mantraDrawTime += 0.016;
+    var cx = W / 2, cy = H / 2;
+    var maxR = Math.min(W, H) * 0.42;
+    var t = mantraDrawTime;
+    // a mandala spirál — a végtelen rajz
+    for (var i = 0; i < 3; i++) {
+      var rot = t * 0.02 + i * Math.PI * 2 / 3;
+      octx.beginPath();
+      for (var a = 0; a <= Math.PI * 2 * 3; a += 0.05) {
+        var r = maxR * (a / (Math.PI * 2 * 3)) * 0.9;
+        var x = cx + Math.cos(a + rot) * r;
+        var y = cy + Math.sin(a + rot) * r;
+        if (a === 0) octx.moveTo(x, y); else octx.lineTo(x, y);
+      }
+      octx.strokeStyle = "hsla(" + (bgHue + i * 40) + ",80%,65%," + (0.25 + 0.15 * Math.sin(t * 0.5 + i)) + ")";
+      octx.lineWidth = 1.5;
+      octx.stroke();
+    }
+    // a mandala külső köre — a lótusz
+    for (var p = 0; p < 24; p++) {
+      var ang = p / 24 * Math.PI * 2 + t * 0.01;
+      var pr = maxR + Math.sin(t * 0.03 + p * 3) * 6;
+      octx.beginPath();
+      octx.arc(cx + Math.cos(ang) * pr, cy + Math.sin(ang) * pr, 2 + Math.sin(t * 0.05 + p) * 1.2, 0, Math.PI * 2);
+      octx.fillStyle = "hsla(" + (bgHue + 20) + ",85%,70%," + (0.3 + 0.2 * Math.sin(t * 0.05 + p)) + ")";
+      octx.fill();
+    }
+    // a középső OM
+    octx.font = "16px 'SF Mono',monospace";
+    octx.fillStyle = "hsla(45,90%,75%,0.7)";
+    octx.textAlign = "center";
+    octx.fillText("OM", cx, cy + 6);
+  }
+
+  window.__dreamRenderer = { initGPU, render, setPoints, isGPU, resize, drawKagyuTree, drawZenGarden, drawBuddhaForms, startBuddhaAudio, stopBuddhaAudio, startMantraDraw, stopMantraDraw, drawMantra };
 })();

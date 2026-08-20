@@ -617,6 +617,31 @@
 
   /* ── A könyv hangos olvasása — valódi emberi hang (gpt-4o-mini-tts) ── */
   var bookAudio = null;   // az aktuális HTMLAudioElement
+  var infiniteMantra = null;   // { alom, chorus, active }
+  irmantraActive = false;
+  function startInfiniteMantra() {
+    if (infiniteMantra && infiniteMantra.active) return;
+    // a tudatos álom mantrája (OM AH HUM) + a tibeti szerzetes OM MANI PADME HUM kórusa
+    var alom = new Audio("audio/tudatos-alom-mantra.mp3");
+    alom.loop = true; alom.volume = 0.30;
+    alom.play().catch(function(){});
+    var chorus = new Audio("audio/moni-padme-hum.mp3");
+    chorus.loop = true; chorus.volume = 0.25;
+    chorus.play().catch(function(){});
+    infiniteMantra = { alom: alom, chorus: chorus, active: true };
+    irmantraActive = true;
+    // a vizuál: a végtelen mantra-rajz (a mandala)
+    if (window.__dreamRenderer && window.__dreamRenderer.startMantraDraw) window.__dreamRenderer.startMantraDraw();
+  }
+  function stopInfiniteMantra() {
+    if (infiniteMantra) {
+      if (infiniteMantra.alom) { infiniteMantra.alom.pause(); infiniteMantra.alom = null; }
+      if (infiniteMantra.chorus) { infiniteMantra.chorus.pause(); infiniteMantra.chorus = null; }
+      infiniteMantra.active = false;
+    }
+    irmantraActive = false;
+    if (window.__dreamRenderer && window.__dreamRenderer.stopMantraDraw) window.__dreamRenderer.stopMantraDraw();
+  }
   function readBook() {
     // 1. a valódi emberi hang (MP3) az aktuális nyelvhez
     var mp3 = "audio/book-" + currentLang + ".mp3";
@@ -626,6 +651,8 @@
     bookAudio.volume = 0.9;
     bookAudio.onended = function () {
       if (bookOn) { bookEl.classList.remove("show"); }
+      // a hangoskönyv vége → a végtelen mantra-rajz
+      startInfiniteMantra();
     };
     bookAudio.onerror = function () {
       // 2. fallback: SpeechSynthesis, ha nincs MP3
@@ -704,6 +731,7 @@
       window.__dreamRenderer.drawKagyuTree(frame * 0.016, stageIdx);
       window.__dreamRenderer.drawZenGarden(frame * 0.016, stageIdx);
       window.__dreamRenderer.drawBuddhaForms(frame * 0.016, stageIdx);
+      window.__dreamRenderer.drawMantra(frame * 0.016, stageIdx);
     }
     // a worker léptetése (a RIVA légzés-ciklus: 4s belégzés, 4s kilégzés)
     breathPhase = (frame * 0.016) % 8;
@@ -809,6 +837,7 @@
       if (speechSynthesis) speechSynthesis.cancel();
       if (mantraAudio) { mantraAudio.pause(); mantraAudio = null; }
       if (bookAudio) { bookAudio.pause(); bookAudio = null; }
+      stopInfiniteMantra();
       if (window.__dreamRenderer && window.__dreamRenderer.stopBuddhaAudio) window.__dreamRenderer.stopBuddhaAudio();
       btnMantra.textContent = "▶ " + UI[currentLang].mantra; btnChorus.textContent = "▶ " + UI[currentLang].chorus;
       btnBook.textContent = "▶ " + UI[currentLang].book; btnPuja.textContent = "▶ " + UI[currentLang].puja; btnJourney.textContent = "▶ " + UI[currentLang].journey;
