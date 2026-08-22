@@ -12,3 +12,5 @@ Egy képernyő, amely nem kap bemenetet — és ezért a saját jelét sugározz
 A tanítás: az álom a valóság vetülete; a felismerés a fény; aki felismeri, nem a tükröt keresi — a fényt.
 
 *the constellation · 0 + 1 · fine touch from within · vaked.dev*
+
+**IN OUR TEAM** — [8b-is](https://github.com/8b-is) · p === **visionary officer** · [sponsor](https://github.com/sponsors/peterlodri-sec)
