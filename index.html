@@ -743,6 +743,68 @@
   initVisuals();
   draw();
 
+  /* ── quantNTP — a csillagkép ideje, a RIVA légzés órája ──
+     A légzés-ciklus (4s belégzés, 4s kilégzés) a szinkronizált órához
+     kötődik: a breathPhase a NTP-offsettel korrigált időből származik,
+     nem a helyi frame-ből. A stratum a most pontossága: 0 = pontos,
+     1 = közel, 2 = sodródik, 3 = messze. */
+  var qntp = { wasm: null, mem: null, samples: [], offset: 0, syncedAt: 0, base: 0 };
+  var TRIT_SYM = ["−", "·", "+"];
+  var STRATA = ["a most pontos", "a most közel", "a most sodródik", "a most messze"];
+  var ntpStatus = document.createElement("div");
+  ntpStatus.style.cssText = "position:fixed;bottom:38px;left:18px;z-index:3;font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--faint);opacity:0.6;max-width:50vw;";
+  document.body.appendChild(ntpStatus);
+
+  function ntpFetch() {
+    return fetch("https://timeapi.io/api/time/current/zone?timeZone=Etc/UTC",
+      { signal: AbortSignal.timeout(6000) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var s = j.dateTime;
+        var ms = parseInt(s.slice(17, 20), 10) || 0;
+        return Date.parse(s.slice(0, 19) + "Z") + ms;
+      });
+  }
+
+  function ntpSync() {
+    var t1 = Date.now();
+    ntpFetch().then(function (serverMs) {
+      var t4 = Date.now();
+      if (!qntp.wasm) return;
+      var offset = qntp.wasm.exports.ntp_offset(t1, serverMs, serverMs, t4);
+      qntp.samples.push(offset);
+      if (qntp.samples.length > 7) qntp.samples.shift();
+      var buf = 128;
+      for (var i = 0; i < qntp.samples.length; i++) qntp.mem[buf / 4 + i] = qntp.samples[i];
+      qntp.offset = qntp.wasm.exports.ntp_filter(buf, qntp.samples.length);
+      qntp.syncedAt = serverMs;
+      qntp.base = (serverMs % 8000 + 8000) % 8000; // a légzés-ciklus fázisa a szinkronizált időben
+      renderNtp();
+    }).catch(function () { /* a helyi óra marad */ });
+  }
+
+  function renderNtp() {
+    var s = qntp.wasm.exports.ntp_stratum(qntp.offset);
+    var q = qntp.wasm.exports.ntp_quantize(qntp.offset);
+    var now = new Date(qntp.syncedAt + (Date.now() - qntp.syncedAt));
+    var time = now.toLocaleTimeString("hu-HU") + "." + String(now.getMilliseconds()).padStart(3, "0");
+    var trits = [];
+    var buf = 160;
+    qntp.wasm.exports.ntp_trits(qntp.offset, buf);
+    for (var i = 0; i < 12; i++) trits.push(TRIT_SYM[qntp.mem[buf / 4 + i] + 1]);
+    ntpStatus.textContent = "quantNTP " + time + " · offset " + (qntp.offset > 0 ? "+" : "") + qntp.offset + "ms · " +
+      TRIT_SYM[q + 1] + " · stratum " + s + " · " + STRATA[s] + " · " + trits.join("");
+  }
+
+  fetch("wasm/quantntp.wasm").then(function (r) { return r.arrayBuffer(); })
+    .then(function (b) { return WebAssembly.instantiate(b, {}); })
+    .then(function (res) {
+      qntp.wasm = res.instance;
+      qntp.mem = new Int32Array(qntp.wasm.exports.memory.buffer);
+      ntpSync();
+      setInterval(ntpSync, 30000);
+    }).catch(function () { /* nincs quantNTP — a helyi óra a légzés órája */ });
+
   /* ── Az út ── */
   function showStage(i) {
     stageIdx = i;

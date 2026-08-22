@@ -19,11 +19,16 @@ A self-generating, client-side-only meditation surface: OM·AH·HUM mantras, the
 - `index.html` — the full experience (single file)
 - `wasm/ternary.wasm` — the ternary-quant core
 - `wasm/ternary.wat` — the WAT source
+- `wasm/quantntp.wasm` — the quantNTP time-sync core (the breath clock)
 - `AGENTS.md` — MILAREPA agent/skill definition
 - `llms.txt` — this file
 - `robots.txt` — anti-AI-scraper
 - `_headers` — CSP + noai
 - `.well-known/` — security + metadata
+
+## quantNTP
+
+The breath cycle (4s in, 4s out) is anchored to the synced clock: the breath phase derives from the NTP-corrected time, not the local frame. A browser NTP client (timeapi.io) measures the network offset, median-filters it, and quantizes it into balanced ternary {-1,0,+1} trits via WASM — the stratum of the now (0 = exact, 1 = near, 2 = drifting, 3 = far).
 
 ## The teaching
 
